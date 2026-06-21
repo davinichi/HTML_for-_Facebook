@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>D 情報の技術 弱点克服 穴埋めクイズ</title>
+<style>
+:root{--main:#1f4f8f;--bg:#f4f7fb;--ok:#087a35;--ng:#b00020;--card:#fff;--muted:#5d6b7a;}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;background:var(--bg);color:#222;line-height:1.7}
+header{background:var(--main);color:#fff;padding:18px 14px;text-align:center} h1{margin:0;font-size:1.25rem} header p{margin:6px 0 0;font-size:.92rem}
+main{max-width:960px;margin:0 auto;padding:14px}
+.panel,.question,.resultBox{background:var(--card);border-radius:14px;padding:14px;margin:14px 0;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px} button{appearance:none;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:1rem;min-height:44px;touch-action:manipulation}
+.primary{background:var(--main);color:#fff}.secondary{background:#e7eef8;color:#173a69}.danger{background:#f6e7e7;color:#8a1010}.green{background:#e6f5ec;color:#086b32}
+button:disabled{opacity:.55;cursor:not-allowed}
+.categoryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+.catCheck{border:2px solid #dbe5f0;border-radius:12px;padding:10px;background:#fff;display:flex;gap:8px;align-items:center;cursor:pointer;min-height:48px}
+.catCheck input{transform:scale(1.2)} .catCheck:has(input:checked){border-color:var(--main);background:#eef5ff}
+.meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.92rem;color:#555}.badge{display:inline-block;background:#eaf1fb;color:#1f4f8f;border-radius:999px;padding:3px 10px;font-size:.82rem;font-weight:700}
+.qtext{font-size:1.08rem;font-weight:700;margin:10px 0 12px}.blank{display:inline-block;min-width:5.5em;padding:0 8px;border-bottom:3px solid #222;text-align:center}
+.choices{display:grid;gap:8px}.choice{display:flex;align-items:flex-start;gap:8px;border:2px solid #dde5f0;border-radius:12px;padding:10px;background:#fff;cursor:pointer;min-height:48px}
+.choice input{margin-top:6px;transform:scale(1.15)}.choice.selected{border-color:var(--main);background:#eef5ff}.choice.correct{border-color:var(--ok);background:#eaf8ef}.choice.wrong{border-color:var(--ng);background:#fff0f2}
+.feedback{margin-top:10px;padding:10px;border-radius:10px;display:none}.feedback.ok{display:block;background:#eaf8ef;color:var(--ok)}.feedback.ng{display:block;background:#fff0f2;color:var(--ng)}
+.summaryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.summaryItem{background:#f7f9fc;border-radius:10px;padding:10px;text-align:center}.summaryItem strong{font-size:1.35rem;display:block}
+.small{font-size:.9rem;color:var(--muted)} .warn{background:#fff6db;border-left:5px solid #d59b00;padding:10px;border-radius:10px;margin-top:10px}.weak{border:2px solid #f0b5b5;background:#fff7f7}
+hr{border:0;border-top:1px solid #e1e7ef;margin:14px 0}
+@media print{header,.controls,.panel input,button{display:none!important}body{background:#fff}.question,.panel,.resultBox{box-shadow:none;border:1px solid #aaa;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<header>
+<h1>D 情報の技術 弱点克服 穴埋めクイズ</h1>
+<p>分野選択・分野別出題・弱点分野だけ再テスト対応</p>
+</header>
+<main>
+<section class="panel">
+  <h2>出題する分野を選択</h2>
+  <div class="small">選択した分野から合計25問を出題します。1分野だけ選ぶと、その分野を25問出題します。</div>
+  <div class="categoryGrid" id="categoryBox"></div>
+  <div class="controls">
+    <button class="secondary" type="button" id="allBtn">全分野を選択</button>
+    <button class="secondary" type="button" id="clearBtn">選択を解除</button>
+    <button class="primary" type="button" id="startBtn">選択した分野で出題</button>
+    <button class="secondary" type="button" id="gradeBtn" disabled>採点する</button>
+    <button class="secondary" type="button" id="printBtn">印刷</button>
+  </div>
+  <div id="message" class="warn" style="display:none;"></div>
+</section>
+<section id="quiz"></section>
+<section id="result" class="resultBox" style="display:none;"></section>
+</main>
+
+<script>
+(function(){
+'use strict';
+var QUESTION_BANK = [{"id": 1, "category": "情報モラル", "sentence": "個人を特定できる名前・住所・電話番号などを（　）という。", "answer": "個人情報", "wrongs": ["公開情報", "制御情報", "共有情報"]}, {"id": 2, "category": "情報モラル", "sentence": "SNSなどで発信する内容に責任をもって行動する態度を（　）という。", "answer": "情報モラル", "wrongs": ["情報処理", "デバッグ", "クラウド"]}, {"id": 3, "category": "情報モラル", "sentence": "他人の文章・音楽・画像などを無断で使わないために守る権利を（　）という。", "answer": "著作権", "wrongs": ["肖像権", "通信速度", "IPアドレス"]}, {"id": 4, "category": "情報モラル", "sentence": "他人の顔や姿を勝手に撮影・公開されない権利を（　）という。", "answer": "肖像権", "wrongs": ["著作権", "LAN", "CPU"]}, {"id": 5, "category": "情報モラル", "sentence": "ネット上で相手を尊重して交流するための礼儀を（　）という。", "answer": "ネチケット", "wrongs": ["プロトコル", "センサー", "二進法"]}, {"id": 6, "category": "情報モラル", "sentence": "人を傷つける書き込みや悪口をネット上に投稿する行為を（　）という。", "answer": "誹謗中傷", "wrongs": ["暗号化", "認証", "可用性"]}, {"id": 7, "category": "情報モラル", "sentence": "インターネット上の情報が正しいかどうかを確認することを（　）という。", "answer": "情報の信頼性確認", "wrongs": ["圧縮", "制御", "入力"]}, {"id": 8, "category": "情報モラル", "sentence": "他人の作品を自分の作品のように発表することを（　）という。", "answer": "盗用", "wrongs": ["通信", "制御", "検索"]}, {"id": 9, "category": "情報モラル", "sentence": "ネット上の情報をそのまま信じず、複数の情報源で（　）する。", "answer": "比較", "wrongs": ["冷却", "撮影", "削除"]}, {"id": 10, "category": "情報モラル", "sentence": "SNSに投稿した内容は完全には消えないことがあるため、（　）をもって発信する必要がある。", "answer": "責任", "wrongs": ["速度", "音量", "電圧"]}, {"id": 11, "category": "情報モラル", "sentence": "他人のメールを勝手に読むことは（　）の侵害である。", "answer": "プライバシー", "wrongs": ["可用性", "効率", "冷却"]}, {"id": 12, "category": "情報モラル", "sentence": "情報発信では、事実と意見を（　）して伝えることが大切である。", "answer": "区別", "wrongs": ["接続", "保存", "点灯"]}, {"id": 13, "category": "情報モラル", "sentence": "写真を投稿すると位置情報から場所が分かることがあるため（　）に注意する。", "answer": "位置情報", "wrongs": ["二進法", "条件分岐", "周波数"]}, {"id": 14, "category": "情報モラル", "sentence": "著作物を引用するときは、出典を示し（　）の範囲で使う。", "answer": "必要最小限", "wrongs": ["最大容量", "高速通信", "完全自動"]}, {"id": 15, "category": "情報モラル", "sentence": "ネット上のトラブルを防ぐには、個人情報をむやみに（　）しない。", "answer": "公開", "wrongs": ["保存", "演算", "測定"]}, {"id": 16, "category": "情報モラル", "sentence": "匿名であっても、発信には（　）が伴う。", "answer": "責任", "wrongs": ["自動化", "圧縮", "暗号化"]}, {"id": 17, "category": "情報モラル", "sentence": "情報を利用するときは、相手や作成者の（　）を尊重する。", "answer": "権利", "wrongs": ["速度", "容量", "形状"]}, {"id": 18, "category": "情報モラル", "sentence": "学校や家庭で決めたICT利用の約束を（　）することが大切である。", "answer": "遵守", "wrongs": ["拡大", "分解", "測温"]}, {"id": 19, "category": "情報モラル", "sentence": "ネットいじめを見つけたときは一人で抱え込まず、信頼できる大人に（　）する。", "answer": "相談", "wrongs": ["圧縮", "暗号化", "演算"]}, {"id": 20, "category": "情報モラル", "sentence": "誤った情報を広めると、他人や社会に（　）を与えることがある。", "answer": "影響", "wrongs": ["電圧", "温度", "容量"]}, {"id": 21, "category": "情報モラル", "sentence": "友達のIDやパスワードを聞き出すことは（　）である。", "answer": "不正", "wrongs": ["便利", "正確", "安全"]}, {"id": 22, "category": "情報モラル", "sentence": "不確かなうわさを広めないためには、情報の（　）を確かめる。", "answer": "真偽", "wrongs": ["電圧", "距離", "音量"]}, {"id": 23, "category": "情報モラル", "sentence": "ネット上で商品を買うときは販売者や支払い方法の（　）を確認する。", "answer": "安全性", "wrongs": ["反復性", "透明性", "可搬性"]}, {"id": 24, "category": "情報モラル", "sentence": "動画や音楽を違法にアップロードされたものと知って利用することは（　）である。", "answer": "問題", "wrongs": ["高速", "便利", "自動"]}, {"id": 25, "category": "情報モラル", "sentence": "他人の作品を紹介するときは、本人の許可と（　）を示す。", "answer": "出典", "wrongs": ["温度", "速度", "色相"]}, {"id": 26, "category": "ネットワーク", "sentence": "学校や家庭など限られた範囲のネットワークを（　）という。", "answer": "LAN", "wrongs": ["WAN", "URL", "SNS"]}, {"id": 27, "category": "ネットワーク", "sentence": "世界中のネットワークが相互に接続された仕組みを（　）という。", "answer": "インターネット", "wrongs": ["CPU", "OS", "RAM"]}, {"id": 28, "category": "ネットワーク", "sentence": "Webページの住所を表す文字列を（　）という。", "answer": "URL", "wrongs": ["LAN", "HTML", "SSD"]}, {"id": 29, "category": "ネットワーク", "sentence": "Webページを見るためのソフトウェアを（　）という。", "answer": "ブラウザ", "wrongs": ["センサー", "コンパイラ", "モータ"]}, {"id": 30, "category": "ネットワーク", "sentence": "ネットワークで情報をやり取りするための約束事を（　）という。", "answer": "プロトコル", "wrongs": ["アルゴリズム", "デバッグ", "フローチャート"]}, {"id": 31, "category": "ネットワーク", "sentence": "ネットワーク上の機器を識別する番号を（　）という。", "answer": "IPアドレス", "wrongs": ["ドメイン名", "OS", "IoT"]}, {"id": 32, "category": "ネットワーク", "sentence": "Webサイトの住所を人が分かりやすい名前で表したものを（　）という。", "answer": "ドメイン名", "wrongs": ["CPU", "ビット", "センサー"]}, {"id": 33, "category": "ネットワーク", "sentence": "インターネット上で情報を探す仕組みを（　）という。", "answer": "検索エンジン", "wrongs": ["入力装置", "出力装置", "主記憶装置"]}, {"id": 34, "category": "ネットワーク", "sentence": "無線でネットワークに接続する技術の一つを（　）という。", "answer": "Wi-Fi", "wrongs": ["USB", "CPU", "ROM"]}, {"id": 35, "category": "ネットワーク", "sentence": "複数の端末で同じファイルを同時に編集することを（　）という。", "answer": "共同編集", "wrongs": ["暗号化", "初期化", "測定"]}, {"id": 36, "category": "ネットワーク", "sentence": "データを別の場所のコンピュータに保存し利用するサービスを（　）という。", "answer": "クラウドサービス", "wrongs": ["ローカル保存", "出力装置", "二進法"]}, {"id": 37, "category": "ネットワーク", "sentence": "広い地域を結ぶネットワークを（　）という。", "answer": "WAN", "wrongs": ["LAN", "RAM", "PNG"]}, {"id": 38, "category": "ネットワーク", "sentence": "ネットワーク上でデータを送るとき、情報は小さな単位に分けられ（　）として送られる。", "answer": "パケット", "wrongs": ["ピクセル", "フォルダ", "セル"]}, {"id": 39, "category": "ネットワーク", "sentence": "Webページを作るために使われる言語の一つを（　）という。", "answer": "HTML", "wrongs": ["CPU", "LAN", "AI"]}, {"id": 40, "category": "ネットワーク", "sentence": "Webサイトに安全に接続していることを示す通信方式を（　）という。", "answer": "HTTPS", "wrongs": ["HTTPのみ", "USB", "GPS"]}, {"id": 41, "category": "ネットワーク", "sentence": "ネットワーク機器同士を中継して接続する機器を（　）という。", "answer": "ルーター", "wrongs": ["キーボード", "モニター", "スピーカー"]}, {"id": 42, "category": "ネットワーク", "sentence": "家庭や学校の端末を無線LANへ接続する機器を（　）という。", "answer": "アクセスポイント", "wrongs": ["フローチャート", "センサー", "著作者"]}, {"id": 43, "category": "ネットワーク", "sentence": "ネットワークを使って離れた人と映像や音声で話し合うことを（　）という。", "answer": "オンライン会議", "wrongs": ["オフライン保存", "二進法変換", "機械加工"]}, {"id": 44, "category": "ネットワーク", "sentence": "サーバーに置かれたデータを自分の端末に取り込むことを（　）という。", "answer": "ダウンロード", "wrongs": ["アップロード", "デバッグ", "制御"]}, {"id": 45, "category": "ネットワーク", "sentence": "自分の端末からサーバーへデータを送ることを（　）という。", "answer": "アップロード", "wrongs": ["ダウンロード", "初期化", "演算"]}, {"id": 46, "category": "ネットワーク", "sentence": "ネットワーク上でサービスを提供するコンピュータを（　）という。", "answer": "サーバー", "wrongs": ["クライアント", "センサー", "プリンタ"]}, {"id": 47, "category": "ネットワーク", "sentence": "サーバーからサービスを受ける側の端末を（　）という。", "answer": "クライアント", "wrongs": ["サーバー", "ルーター", "OS"]}, {"id": 48, "category": "ネットワーク", "sentence": "Webで情報を探すときに入力する語句を（　）という。", "answer": "キーワード", "wrongs": ["ビット", "センサー", "ループ"]}, {"id": 49, "category": "ネットワーク", "sentence": "LAN内の機器同士はファイルやプリンタを（　）できる。", "answer": "共有", "wrongs": ["加熱", "圧縮のみ", "発電"]}, {"id": 50, "category": "ネットワーク", "sentence": "遠くの人とデータをやり取りできることはネットワークの大きな（　）である。", "answer": "利点", "wrongs": ["欠点のみ", "誤差", "部品"]}, {"id": 51, "category": "セキュリティ", "sentence": "必要な人だけが情報を利用できる性質を（　）という。", "answer": "機密性", "wrongs": ["完全性", "可用性", "利便性"]}, {"id": 52, "category": "セキュリティ", "sentence": "情報が改ざんされず正確である性質を（　）という。", "answer": "完全性", "wrongs": ["機密性", "可用性", "匿名性"]}, {"id": 53, "category": "セキュリティ", "sentence": "必要なときに情報を利用できる性質を（　）という。", "answer": "可用性", "wrongs": ["完全性", "機密性", "拡張性"]}, {"id": 54, "category": "セキュリティ", "sentence": "英数字や記号を組み合わせた推測されにくい合言葉を（　）という。", "answer": "強いパスワード", "wrongs": ["弱いパスワード", "IPアドレス", "フローチャート"]}, {"id": 55, "category": "セキュリティ", "sentence": "偽のサイトに誘導して個人情報を盗む詐欺を（　）という。", "answer": "フィッシング詐欺", "wrongs": ["共同編集", "暗号化", "反復処理"]}, {"id": 56, "category": "セキュリティ", "sentence": "情報を第三者に読まれにくい形に変換することを（　）という。", "answer": "暗号化", "wrongs": ["復号", "圧縮", "測定"]}, {"id": 57, "category": "セキュリティ", "sentence": "本人であることを確認する仕組みを（　）という。", "answer": "認証", "wrongs": ["演算", "出力", "反復"]}, {"id": 58, "category": "セキュリティ", "sentence": "許可なく他人のコンピュータやアカウントに入ることを（　）という。", "answer": "不正アクセス", "wrongs": ["共同編集", "正規利用", "公開設定"]}, {"id": 59, "category": "セキュリティ", "sentence": "コンピュータに被害を与える悪意のあるプログラムを（　）という。", "answer": "マルウェア", "wrongs": ["ブラウザ", "センサー", "ドメイン"]}, {"id": 60, "category": "セキュリティ", "sentence": "感染するとデータ破壊などを起こす悪質なプログラムを（　）という。", "answer": "コンピュータウイルス", "wrongs": ["クラウド", "HTML", "CPU"]}, {"id": 61, "category": "セキュリティ", "sentence": "ソフトウェアの欠陥や弱点を（　）という。", "answer": "脆弱性", "wrongs": ["可用性", "透明性", "利便性"]}, {"id": 62, "category": "セキュリティ", "sentence": "脆弱性を減らすため、OSやアプリを（　）する。", "answer": "更新", "wrongs": ["放置", "共有", "印刷"]}, {"id": 63, "category": "セキュリティ", "sentence": "大切なデータを別の場所にも保存することを（　）という。", "answer": "バックアップ", "wrongs": ["デバッグ", "アップロード禁止", "反復"]}, {"id": 64, "category": "セキュリティ", "sentence": "複数の確認方法で本人確認する仕組みを（　）という。", "answer": "多要素認証", "wrongs": ["単純保存", "画像処理", "条件分岐"]}, {"id": 65, "category": "セキュリティ", "sentence": "通信内容を盗み見する行為を（　）という。", "answer": "盗聴", "wrongs": ["暗号化", "認証", "保存"]}, {"id": 66, "category": "セキュリティ", "sentence": "怪しい添付ファイルを開かないことは（　）対策になる。", "answer": "ウイルス感染", "wrongs": ["共同編集", "画像拡大", "印刷ミス"]}, {"id": 67, "category": "セキュリティ", "sentence": "IDとパスワードを他人に教えないことは（　）を守る基本である。", "answer": "アカウント", "wrongs": ["センサー", "画面", "電池"]}, {"id": 68, "category": "セキュリティ", "sentence": "公共のWi-Fiで個人情報を入力するときは（　）に注意する。", "answer": "安全性", "wrongs": ["反復", "画質", "音量"]}, {"id": 69, "category": "セキュリティ", "sentence": "悪意あるメールのリンクをクリックしないことは（　）対策である。", "answer": "フィッシング", "wrongs": ["共同編集", "フローチャート", "出力"]}, {"id": 70, "category": "セキュリティ", "sentence": "情報セキュリティでは、機密性・完全性・（　）が重要である。", "answer": "可用性", "wrongs": ["透明性", "可搬性", "娯楽性"]}, {"id": 71, "category": "セキュリティ", "sentence": "パスワードを使い回さないことは（　）被害を防ぐために有効である。", "answer": "不正ログイン", "wrongs": ["通信速度", "画像劣化", "温度上昇"]}, {"id": 72, "category": "セキュリティ", "sentence": "ウイルス対策ソフトは悪意あるプログラムを（　）するために使う。", "answer": "検出", "wrongs": ["発電", "圧縮", "描画"]}, {"id": 73, "category": "セキュリティ", "sentence": "怪しいWebサイトで個人情報を入力しないことは（　）を防ぐ。", "answer": "情報漏えい", "wrongs": ["計測誤差", "処理速度", "熱暴走"]}, {"id": 74, "category": "セキュリティ", "sentence": "紛失した端末から情報を見られないように（　）を設定する。", "answer": "画面ロック", "wrongs": ["反復処理", "温度設定", "共同編集"]}, {"id": 75, "category": "セキュリティ", "sentence": "ログイン履歴を確認することは（　）の発見に役立つ。", "answer": "不正アクセス", "wrongs": ["反復処理", "出力装置", "画像編集"]}, {"id": 76, "category": "プログラミング", "sentence": "問題を解決するための手順を（　）という。", "answer": "アルゴリズム", "wrongs": ["プロトコル", "ドメイン名", "センサー"]}, {"id": 77, "category": "プログラミング", "sentence": "処理の流れを図で表したものを（　）という。", "answer": "フローチャート", "wrongs": ["センサー", "プロトコル", "クラウド"]}, {"id": 78, "category": "プログラミング", "sentence": "コンピュータに実行させる命令の集まりを（　）という。", "answer": "プログラム", "wrongs": ["ネットワーク", "CPU", "URL"]}, {"id": 79, "category": "プログラミング", "sentence": "処理を上から順番に実行する構造を（　）という。", "answer": "順次処理", "wrongs": ["分岐処理", "反復処理", "暗号化"]}, {"id": 80, "category": "プログラミング", "sentence": "条件によって処理を変える構造を（　）という。", "answer": "分岐処理", "wrongs": ["順次処理", "反復処理", "入力処理"]}, {"id": 81, "category": "プログラミング", "sentence": "同じ処理を繰り返す構造を（　）という。", "answer": "反復処理", "wrongs": ["分岐処理", "順次処理", "認証"]}, {"id": 82, "category": "プログラミング", "sentence": "プログラムの誤りを見つけて直すことを（　）という。", "answer": "デバッグ", "wrongs": ["アップロード", "暗号化", "検索"]}, {"id": 83, "category": "プログラミング", "sentence": "値を一時的に入れておく箱のようなものを（　）という。", "answer": "変数", "wrongs": ["定数", "関数", "センサー"]}, {"id": 84, "category": "プログラミング", "sentence": "決まった値を変えずに使うものを（　）という。", "answer": "定数", "wrongs": ["変数", "反復", "通信"]}, {"id": 85, "category": "プログラミング", "sentence": "条件を判定するときに使う式を（　）という。", "answer": "条件式", "wrongs": ["URL", "IPアドレス", "ドメイン"]}, {"id": 86, "category": "プログラミング", "sentence": "プログラムに入れるデータを（　）という。", "answer": "入力", "wrongs": ["出力", "保存", "削除"]}, {"id": 87, "category": "プログラミング", "sentence": "プログラムの処理結果として出されるデータを（　）という。", "answer": "出力", "wrongs": ["入力", "条件", "反復"]}, {"id": 88, "category": "プログラミング", "sentence": "複数の処理をまとめて名前を付けたものを（　）という。", "answer": "関数", "wrongs": ["変数", "URL", "LAN"]}, {"id": 89, "category": "プログラミング", "sentence": "処理を実行する順番を考えることを（　）という。", "answer": "手順化", "wrongs": ["暗号化", "圧縮", "測定"]}, {"id": 90, "category": "プログラミング", "sentence": "フローチャートで条件判断を表す図形は（　）である。", "answer": "ひし形", "wrongs": ["長方形", "楕円", "円"]}, {"id": 91, "category": "プログラミング", "sentence": "フローチャートで処理を表す図形は（　）である。", "answer": "長方形", "wrongs": ["ひし形", "三角形", "円"]}, {"id": 92, "category": "プログラミング", "sentence": "フローチャートで開始や終了を表す図形は（　）である。", "answer": "楕円", "wrongs": ["長方形", "ひし形", "四角形"]}, {"id": 93, "category": "プログラミング", "sentence": "反復処理で終わる条件を決めないと（　）になることがある。", "answer": "無限ループ", "wrongs": ["高速通信", "自動保存", "画面更新"]}, {"id": 94, "category": "プログラミング", "sentence": "プログラムの動作を確認するために実行して調べることを（　）という。", "answer": "テスト", "wrongs": ["盗用", "削除", "公開"]}, {"id": 95, "category": "プログラミング", "sentence": "処理を細かい手順に分けることを（　）という。", "answer": "分解", "wrongs": ["復号", "暗号化", "発電"]}, {"id": 96, "category": "プログラミング", "sentence": "フローチャートでは矢印で処理の（　）を表す。", "answer": "流れ", "wrongs": ["容量", "温度", "画質"]}, {"id": 97, "category": "プログラミング", "sentence": "プログラムを読みやすくする説明文を（　）という。", "answer": "コメント", "wrongs": ["パケット", "ドメイン", "センサー"]}, {"id": 98, "category": "プログラミング", "sentence": "プログラムの命令を書くときの決まりを（　）という。", "answer": "文法", "wrongs": ["電圧", "権利", "温度"]}, {"id": 99, "category": "プログラミング", "sentence": "プログラムで条件を満たすまで繰り返す処理を（　）という。", "answer": "ループ", "wrongs": ["URL", "LAN", "CPU"]}, {"id": 100, "category": "プログラミング", "sentence": "入力、処理、出力の流れを考えることは（　）に役立つ。", "answer": "問題解決", "wrongs": ["通信妨害", "情報漏えい", "冷却"]}, {"id": 101, "category": "計測・制御", "sentence": "温度や明るさなどを調べて情報を入力する装置を（　）という。", "answer": "センサー", "wrongs": ["モーター", "CPU", "URL"]}, {"id": 102, "category": "計測・制御", "sentence": "機械の動きを指示どおりに調整することを（　）という。", "answer": "制御", "wrongs": ["検索", "著作", "圧縮"]}, {"id": 103, "category": "計測・制御", "sentence": "温度を測るセンサーを（　）という。", "answer": "温度センサー", "wrongs": ["光センサー", "距離センサー", "音センサー"]}, {"id": 104, "category": "計測・制御", "sentence": "明るさを測るセンサーを（　）という。", "answer": "光センサー", "wrongs": ["温度センサー", "湿度センサー", "加速度センサー"]}, {"id": 105, "category": "計測・制御", "sentence": "物体までの距離を測るセンサーを（　）という。", "answer": "距離センサー", "wrongs": ["音センサー", "温度センサー", "圧力センサー"]}, {"id": 106, "category": "計測・制御", "sentence": "音の大きさを検知するセンサーを（　）という。", "answer": "音センサー", "wrongs": ["光センサー", "温度センサー", "磁気センサー"]}, {"id": 107, "category": "計測・制御", "sentence": "回転や動きを生み出す装置を（　）という。", "answer": "モーター", "wrongs": ["センサー", "ブラウザ", "ドメイン"]}, {"id": 108, "category": "計測・制御", "sentence": "光を出して状態を知らせる部品を（　）という。", "answer": "LED", "wrongs": ["CPU", "LAN", "RAM"]}, {"id": 109, "category": "計測・制御", "sentence": "センサーで測った値をもとに機械を動かす仕組みを（　）という。", "answer": "計測・制御", "wrongs": ["著作権管理", "検索処理", "情報発信"]}, {"id": 110, "category": "計測・制御", "sentence": "人を検知して開閉するドアを（　）という。", "answer": "自動ドア", "wrongs": ["手動印刷", "クラウド", "メール"]}, {"id": 111, "category": "計測・制御", "sentence": "温度に応じて冷暖房を調整する機器を（　）という。", "answer": "エアコン", "wrongs": ["ブラウザ", "ルーター", "プリンタ"]}, {"id": 112, "category": "計測・制御", "sentence": "決められた順番で信号の色を変える装置を（　）という。", "answer": "信号機", "wrongs": ["検索エンジン", "URL", "スピーカー"]}, {"id": 113, "category": "計測・制御", "sentence": "センサーから得た情報を数値として扱うことを（　）という。", "answer": "計測", "wrongs": ["著作", "盗聴", "引用"]}, {"id": 114, "category": "計測・制御", "sentence": "測定した値に応じて動作を変えるためには（　）を使う。", "answer": "条件分岐", "wrongs": ["肖像権", "ドメイン名", "著作権"]}, {"id": 115, "category": "計測・制御", "sentence": "暗くなったら自動で点灯する照明は（　）を利用している。", "answer": "光センサー", "wrongs": ["IPアドレス", "著作権", "CPU"]}, {"id": 116, "category": "計測・制御", "sentence": "人の動きを検知して点灯する照明には（　）が使われる。", "answer": "人感センサー", "wrongs": ["検索エンジン", "ブラウザ", "URL"]}, {"id": 117, "category": "計測・制御", "sentence": "湿り気を測るセンサーを（　）という。", "answer": "湿度センサー", "wrongs": ["音センサー", "距離センサー", "光センサー"]}, {"id": 118, "category": "計測・制御", "sentence": "押された力を検知するセンサーを（　）という。", "answer": "圧力センサー", "wrongs": ["温度センサー", "光センサー", "URL"]}, {"id": 119, "category": "計測・制御", "sentence": "制御では、入力・処理・（　）の流れを考える。", "answer": "出力", "wrongs": ["著作権", "暗号", "検索"]}, {"id": 120, "category": "計測・制御", "sentence": "設定温度を超えたらファンを回す処理は（　）を使う。", "answer": "条件判断", "wrongs": ["無断転載", "フィッシング", "ドメイン"]}, {"id": 121, "category": "計測・制御", "sentence": "決められた時間ごとに測定を繰り返す処理は（　）を使う。", "answer": "反復処理", "wrongs": ["著作権", "機密性", "URL"]}, {"id": 122, "category": "計測・制御", "sentence": "センサーで測った値は、プログラムで判断するための（　）になる。", "answer": "入力情報", "wrongs": ["著作物", "出典", "ドメイン"]}, {"id": 123, "category": "計測・制御", "sentence": "ロボット掃除機はセンサーで障害物を検知し（　）を変える。", "answer": "進行方向", "wrongs": ["著作権", "URL", "メール"]}, {"id": 124, "category": "計測・制御", "sentence": "LEDを点滅させるには、点灯と消灯を（　）する。", "answer": "繰り返す", "wrongs": ["盗む", "公開する", "引用する"]}, {"id": 125, "category": "計測・制御", "sentence": "身近な家電にセンサーやプログラムを組み合わせることで（　）が実現する。", "answer": "自動化", "wrongs": ["著作権", "情報漏えい", "匿名化"]}];
+var CATEGORIES = ["情報モラル","ネットワーク","セキュリティ","プログラミング","計測・制御"];
+var TOTAL_QUESTIONS = 25;
+var LABELS = ["A","B","C","D"];
+var currentQuestions = [];
+var lastSelectedCategories = CATEGORIES.slice();
+
+function byId(id){return document.getElementById(id);}
+function shuffle(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+function norm(s){return String(s||"").replace(/\s+/g,"").replace(/[（）()　]/g,"");}
+function showMsg(s){var m=byId("message");m.innerHTML=s;m.style.display="block";}
+function hideMsg(){byId("message").style.display="none";}
+
+function renderCategoryBox(){
+  var html="";
+  for(var i=0;i<CATEGORIES.length;i++){
+    html+='<label class="catCheck"><input type="checkbox" name="cat" value="'+esc(CATEGORIES[i])+'" checked> <span>'+esc(CATEGORIES[i])+'</span></label>';
+  }
+  byId("categoryBox").innerHTML=html;
+}
+function getSelectedCategories(){
+  var checks=document.querySelectorAll('input[name="cat"]:checked');
+  var list=[];
+  for(var i=0;i<checks.length;i++) list.push(checks[i].value);
+  return list;
+}
+function setSelectedCategories(list){
+  var checks=document.querySelectorAll('input[name="cat"]');
+  for(var i=0;i<checks.length;i++) checks[i].checked = list.indexOf(checks[i].value)>=0;
+}
+function calcQuotas(selected){
+  var quotas={}, base=Math.floor(TOTAL_QUESTIONS/selected.length), rest=TOTAL_QUESTIONS%selected.length;
+  var order=shuffle(selected);
+  for(var i=0;i<selected.length;i++) quotas[selected[i]]=base;
+  for(var r=0;r<rest;r++) quotas[order[r]]++;
+  return quotas;
+}
+function makeTargetPositions(total){
+  var base=Math.floor(total/4), rest=total%4, counts=[base,base,base,base], order=shuffle([0,1,2,3]);
+  for(var i=0;i<rest;i++) counts[order[i]]++;
+  var pos=[]; for(var p=0;p<4;p++){for(var n=0;n<counts[p];n++)pos.push(p);}
+  return shuffle(pos);
+}
+function buildChoices(q, correctPos){
+  var wrongs=shuffle(q.wrongs).slice(0,3), choices=["","","",""], wi=0;
+  choices[correctPos]=q.answer;
+  for(var i=0;i<4;i++){if(i!==correctPos) choices[i]=wrongs[wi++];}
+  return choices;
+}
+function pickQuestions(selected){
+  var quotas=calcQuotas(selected), selectedQs=[], usedIds={}, usedTexts={};
+  for(var c=0;c<selected.length;c++){
+    var cat=selected[c], need=quotas[cat], pool=shuffle(QUESTION_BANK.filter(function(q){return q.category===cat;})), count=0;
+    for(var i=0;i<pool.length && count<need;i++){
+      var q=pool[i], key=norm(q.sentence);
+      if(usedIds[q.id]||usedTexts[key]) continue;
+      usedIds[q.id]=true; usedTexts[key]=true; selectedQs.push(q); count++;
+    }
+    if(count<need){throw new Error(cat+"の問題数が不足しています。");}
+  }
+  return shuffle(selectedQs);
+}
+function startQuizWithCategories(cats){
+  hideMsg();
+  if(!cats || cats.length===0){showMsg("少なくとも1つの分野を選択してください。");return;}
+  lastSelectedCategories=cats.slice();
+  var base=pickQuestions(cats), positions=makeTargetPositions(base.length);
+  currentQuestions=base.map(function(q,idx){
+    var cp=positions[idx];
+    return {id:q.id,category:q.category,sentence:q.sentence,answer:q.answer,choices:buildChoices(q,cp),correctIndex:cp};
+  });
+  renderQuiz();
+}
+function renderQuiz(){
+  byId("result").style.display="none"; byId("gradeBtn").disabled=false;
+  var quiz=byId("quiz"), html="";
+  for(var i=0;i<currentQuestions.length;i++){
+    var q=currentQuestions[i], text=esc(q.sentence).replace("（　）",'<span class="blank">　</span>').replace("(　)",'<span class="blank">　</span>');
+    html+='<article class="question" id="qcard'+i+'"><div class="meta"><span class="badge">'+esc(q.category)+'</span><span>第'+(i+1)+'問</span></div><div class="qtext">'+text+'</div><div class="choices">';
+    for(var j=0;j<4;j++){
+      html+='<label class="choice" data-q="'+i+'" data-c="'+j+'"><input type="radio" name="q'+i+'" value="'+j+'"><span><strong>'+LABELS[j]+'.</strong> '+esc(q.choices[j])+'</span></label>';
+    }
+    html+='</div><div class="feedback" id="fb'+i+'"></div></article>';
+  }
+  quiz.innerHTML=html;
+  var labels=document.querySelectorAll(".choice");
+  for(var k=0;k<labels.length;k++){
+    labels[k].addEventListener("click",function(){
+      var qi=this.getAttribute("data-q"), group=document.querySelectorAll('.choice[data-q="'+qi+'"]');
+      for(var m=0;m<group.length;m++) group[m].classList.remove("selected");
+      this.classList.add("selected");
+    },false);
+  }
+  window.scrollTo(0,0);
+}
+function gradeQuiz(){
+  var score=0, answered=0, catStats={}, answerPos=[0,0,0,0];
+  for(var c=0;c<CATEGORIES.length;c++) catStats[CATEGORIES[c]]={ok:0,total:0};
+  for(var i=0;i<currentQuestions.length;i++){
+    var q=currentQuestions[i]; catStats[q.category].total++; answerPos[q.correctIndex]++;
+    var checked=document.querySelector('input[name="q'+i+'"]:checked');
+    var chosen=checked?parseInt(checked.value,10):-1; if(chosen>=0) answered++;
+    var choices=document.querySelectorAll('.choice[data-q="'+i+'"]');
+    for(var j=0;j<choices.length;j++){choices[j].classList.remove("correct","wrong"); if(j===q.correctIndex)choices[j].classList.add("correct"); if(chosen===j&&chosen!==q.correctIndex)choices[j].classList.add("wrong");}
+    var fb=byId("fb"+i);
+    if(chosen===q.correctIndex){score++;catStats[q.category].ok++;fb.className="feedback ok";fb.innerHTML="正解です。正解は <strong>"+LABELS[q.correctIndex]+". "+esc(q.answer)+"</strong> です。";}
+    else{fb.className="feedback ng";fb.innerHTML="不正解です。正解は <strong>"+LABELS[q.correctIndex]+". "+esc(q.answer)+"</strong> です。";}
+  }
+  renderResult(score, answered, catStats, answerPos);
+}
+function renderResult(score, answered, catStats, answerPos){
+  var weak=[], lowest=101;
+  for(var c=0;c<CATEGORIES.length;c++){
+    var st=catStats[CATEGORIES[c]];
+    if(st.total>0){var rate=Math.round(st.ok/st.total*100); if(rate<lowest) lowest=rate;}
+  }
+  for(var c2=0;c2<CATEGORIES.length;c2++){
+    var st2=catStats[CATEGORIES[c2]];
+    if(st2.total>0){var rate2=Math.round(st2.ok/st2.total*100); if(rate2<80 && rate2===lowest) weak.push(CATEGORIES[c2]);}
+  }
+  if(weak.length===0){
+    for(var c3=0;c3<CATEGORIES.length;c3++){
+      var st3=catStats[CATEGORIES[c3]];
+      if(st3.total>0 && Math.round(st3.ok/st3.total*100)===lowest) weak.push(CATEGORIES[c3]);
+    }
+  }
+  var percent=Math.round(score/currentQuestions.length*100), html='<h2>採点結果</h2><div class="summaryGrid">';
+  html+='<div class="summaryItem"><span>得点</span><strong>'+score+' / '+currentQuestions.length+'</strong></div>';
+  html+='<div class="summaryItem"><span>正答率</span><strong>'+percent+'%</strong></div>';
+  html+='<div class="summaryItem"><span>回答済み</span><strong>'+answered+'問</strong></div></div><hr><h3>分野別結果</h3><div class="summaryGrid">';
+  for(var c4=0;c4<CATEGORIES.length;c4++){
+    var name=CATEGORIES[c4], st4=catStats[name];
+    if(st4.total>0){
+      var r4=Math.round(st4.ok/st4.total*100), cls=weak.indexOf(name)>=0?' summaryItem weak':' summaryItem';
+      html+='<div class="'+cls+'"><span>'+esc(name)+'</span><strong>'+st4.ok+' / '+st4.total+'</strong><div class="small">'+r4+'%</div></div>';
+    }
+  }
+  html+='</div><hr><div class="small">正解位置：A '+answerPos[0]+'問 / B '+answerPos[1]+'問 / C '+answerPos[2]+'問 / D '+answerPos[3]+'問</div>';
+  html+='<div class="warn"><strong>弱点分野：</strong>'+esc(weak.join("・"))+'<br>「弱点分野だけ再テスト」を押すと、この分野だけから25問を出題します。</div>';
+  html+='<div class="controls"><button class="green" type="button" id="weakBtn">弱点分野だけ再テスト</button><button class="primary" type="button" id="sameBtn">同じ選択分野でもう一度</button><button class="secondary" type="button" id="selectBtn">分野選択へ戻る</button></div>';
+  var result=byId("result"); result.innerHTML=html; result.style.display="block";
+  byId("weakBtn").addEventListener("click",function(){setSelectedCategories(weak);startQuizWithCategories(weak);},false);
+  byId("sameBtn").addEventListener("click",function(){startQuizWithCategories(lastSelectedCategories);},false);
+  byId("selectBtn").addEventListener("click",function(){window.scrollTo(0,0);},false);
+  result.scrollIntoView({behavior:"smooth",block:"start"});
+}
+renderCategoryBox();
+byId("allBtn").addEventListener("click",function(){setSelectedCategories(CATEGORIES);},false);
+byId("clearBtn").addEventListener("click",function(){setSelectedCategories([]);},false);
+byId("startBtn").addEventListener("click",function(){startQuizWithCategories(getSelectedCategories());},false);
+byId("gradeBtn").addEventListener("click",gradeQuiz,false);
+byId("printBtn").addEventListener("click",function(){window.print();},false);
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){startQuizWithCategories(CATEGORIES);},false);}else{startQuizWithCategories(CATEGORIES);}
+})();
+</script>
+</body>
+</html>
